@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 3000
 
 # Use environment variable PORT if provided (Render sets this)
-CMD ["node", "server.js"]
+CMD ["node", "server.js"] 
