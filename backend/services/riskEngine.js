@@ -275,6 +275,25 @@ function generateInsights(user) {
   const insights = [];
   const timeMinutes = Math.floor(user.totalTime / 60);
 
+  // If no data at all, show onboarding insights
+  if (user.copyCount === 0 && timeMinutes === 0) {
+    insights.push({
+      type: "info",
+      icon: "🚀",
+      title: "Welcome to AI Guardian!",
+      body: "Visit any AI site (ChatGPT, Claude, etc.) and start copying text. We'll analyze your usage patterns and provide personalized safety insights.",
+      priority: 10
+    });
+    insights.push({
+      type: "tip",
+      icon: "💡",
+      title: "How It Works",
+      body: "AI Guardian tracks copy events and time spent on AI platforms. It flags risky content like overconfident language, homework answers, and personal data exposure.",
+      priority: 9
+    });
+    return insights;
+  }
+
   // Peak usage insight
   if (user.copyEvents && user.copyEvents.length > 0) {
     const hours = user.copyEvents.map(e => new Date(e.timestamp).getHours());
@@ -288,6 +307,107 @@ function generateInsights(user) {
       priority: 2
     });
   }
+
+  // Most used AI
+  const topAI = Object.entries(user.aiUsage || {})
+    .filter(([, v]) => v > 0)
+    .sort(([,a], [,b]) => b - a)[0];
+  if (topAI) {
+    insights.push({
+      type: "info",
+      icon: "🤖",
+      title: `You Use ${topAI[0]} the Most`,
+      body: `${topAI[0]} accounts for ${topAI[1]} of your copy events. Diversifying AI tools can reduce dependency on a single source.`,
+      priority: 1
+    });
+  }
+
+  // Copy frequency
+  if (user.copyCount > 5) {
+    insights.push({
+      type: "warning",
+      icon: "📋",
+      title: "Frequent Copying Detected",
+      body: `You've copied AI content ${user.copyCount} times. Try writing summaries in your own words instead.`,
+      priority: 3
+    });
+  } else if (user.copyCount > 0) {
+    insights.push({
+      type: "success",
+      icon: "✅",
+      title: "Moderate Copying",
+      body: `You've made ${user.copyCount} copies so far. Stay mindful and verify important claims.`,
+      priority: 2
+    });
+  }
+
+  // Time insight
+  if (timeMinutes > 60) {
+    insights.push({
+      type: "warning",
+      icon: "⏰",
+      title: "Extended AI Session",
+      body: `You've spent ${timeMinutes} minutes on AI tools today. The recommended limit for focused, healthy use is 30-45 minutes per session.`,
+      priority: 4
+    });
+  } else if (timeMinutes > 0) {
+    insights.push({
+      type: "success",
+      icon: "⏱️",
+      title: "Healthy Usage Time",
+      body: `You've spent ${timeMinutes} minutes on AI tools. Keep taking regular breaks to stay effective.`,
+      priority: 1
+    });
+  }
+
+  // Positive insight: streak
+  if (user.streak > 2) {
+    insights.push({
+      type: "success",
+      icon: "🔥",
+      title: `${user.streak}-Day Streak!`,
+      body: `You've been engaging with AI tools for ${user.streak} consecutive days. Stay consistent and mindful!`,
+      priority: 1
+    });
+  }
+
+  // Content category insight
+  const topCategory = Object.entries(user.contentCategories || {})
+    .filter(([, v]) => v > 0)
+    .sort(([,a], [,b]) => b - a)[0];
+  if (topCategory) {
+    const categoryMessages = {
+      homework: "Most of your AI usage involves homework. Make sure you're learning concepts, not just getting answers.",
+      coding: "You're using AI heavily for coding. Review and understand every snippet before adding it to your project.",
+      writing: "AI is helping with your writing. Try drafting first, then using AI to refine — not replace — your work.",
+      research: "Research-heavy AI use detected. Always verify AI-provided facts with primary sources.",
+      creative: "Creative AI use is great! Just ensure your own creative voice leads the work."
+    };
+    const msg = categoryMessages[topCategory[0]];
+    if (msg) {
+      insights.push({
+        type: "tip",
+        icon: "💡",
+        title: `${topCategory[0].charAt(0).toUpperCase() + topCategory[0].slice(1)} Focus`,
+        body: msg,
+        priority: 2
+      });
+    }
+  }
+
+  // If still no insights (shouldn't happen), add a fallback
+  if (insights.length === 0) {
+    insights.push({
+      type: "info",
+      icon: "📊",
+      title: "Data Gathering",
+      body: "We're collecting more data about your AI usage. More insights will appear soon!",
+      priority: 1
+    });
+  }
+
+  return insights.sort((a, b) => b.priority - a.priority);
+}
 
   // Most used AI
   const topAI = Object.entries(user.aiUsage || {})
@@ -362,7 +482,7 @@ function generateInsights(user) {
 
   // Sort by priority
   return insights.sort((a, b) => b.priority - a.priority);
-}
+
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
 function mode(arr) {
