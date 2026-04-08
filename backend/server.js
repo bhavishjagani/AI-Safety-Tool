@@ -1,30 +1,21 @@
 const express = require("express");
 const cors = require("cors");
 
+const trackRoute = require("./routes/track");
+const statsRoute = require("./routes/stats");
+const insightsRoute = require("./routes/insights");
+
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-let activityLog = [];
+// ROUTES
+app.use("/track", trackRoute);
+app.use("/stats", statsRoute);
+app.use("/insights", insightsRoute);
 
-// Root route
-app.get("/", (req, res) => {
-    res.send("AI Safety Backend is live ✅");
+// START
+app.listen(3000, () => {
+  console.log("✅ Backend running on http://localhost:3000");
 });
-
-// Track AI usage
-app.post("/track", (req, res) => {
-    const data = { ...req.body, timestamp: new Date() };
-    activityLog.push(data);
-    console.log("Activity:", data);
-    res.json({ status: "ok" });
-});
-
-// View tracked stats
-app.get("/stats", (req, res) => {
-    res.json(activityLog);
-});
-
-// Listen on dynamic port for Render
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
